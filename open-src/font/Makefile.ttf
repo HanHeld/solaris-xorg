@@ -1,0 +1,89 @@
+# -*- Makefile -*- rules common to most X.Org TrueType font modules
+#
+# Copyright (c) 2009, 2010, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+#
+
+### Include common definitions
+PWD:sh=pwd
+TOP=$(PWD)/../../..
+
+MODTYPE=font
+
+include $(TOP)/open-src/common/Makefile.init
+
+# Default package name for TrueType font packages
+MODTYPE_PKGHIER=system/font/truetype
+MODTYPE_PKGHIER_SET=yes
+MODULE_PKGTAIL_DEFAULT		= $(MODULE_PKGTAIL_SET:yes=$(POUND_SIGN))
+$(MODULE_PKGTAIL_DEFAULT)	MODULE_PKGTAIL=$(TTF_SUBDIR)
+$(MODULE_PKGTAIL_DEFAULT)	MODULE_PKGTAIL_SET=yes
+
+# No configure script to run
+CONFIGURE_TARGETS=
+CONFIGURE_TARGETS_SET=yes
+
+# "Build" is just creating fonts.scale & fonts.dir metadata files
+BUILD_TARGETS=build_ttf_dir
+BUILD_TARGETS_SET=yes
+
+# What to install
+INSTALL_TARGETS=install_ttf $(MODULE_ADD_INSTALL_TARGETS) $(MODTYPE_ADD_INSTALL_TARGETS)
+INSTALL_TARGETS_SET=yes
+
+# Set default directory name if not set in module makefile
+TTF_SUBDIR_DEFAULT	= $(TTF_SUBDIR_SET:yes=$(POUND_SIGN))
+$(TTF_SUBDIR_DEFAULT)	TTF_SUBDIR=$(MODULE_TTF)
+
+MODULE_FONTDIR_DEFAULT	= $(MODULE_FONTDIR_SET:yes=$(POUND_SIGN))
+$(MODULE_FONTDIR_DEFAULT) MODULE_FONTDIR=$(TRUETYPE_FONT_DIR)/$(TTF_SUBDIR)
+
+FONTPATH_LINKS_DEFAULT	= $(FONTPATH_LINKS_SET:yes=$(POUND_SIGN))
+$(FONTPATH_LINKS_DEFAULT) FONTPATH_LINKS=$(TTF_SUBDIR):pri=42
+
+### Include common rulesets
+include ../Makefile.inc
+
+FONT_DEST_DIR=$(PROTODIR)/$(MODULE_FONTDIR)
+
+SOURCE_FONT_FILES=$(TTF_FONT_FILES:%=$(SOURCE_DIR)/%)
+
+FONT_DATA_FILES=fonts.dir fonts.scale
+SOURCE_DATA_DIR=$(SOURCE_DIR)/$(TTF_SOURCE_SUBDIR)
+
+SOURCE_FONT_DATA=$(FONT_DATA_FILES:%=$(SOURCE_DATA_DIR)%)
+
+$(SOURCE_FONT_FILES): $(SOURCE_TARGETS)
+
+$(SOURCE_DATA_DIR)fonts.scale: $(SOURCE_FONT_FILES)
+	LD_LIBRARY_PATH="$(FONT_LIBS_PATH)" $(MKFONTSCALE) $(SOURCE_DATA_DIR)
+
+$(SOURCE_DATA_DIR)fonts.dir: $(SOURCE_FONT_FILES) $(SOURCE_DATA_DIR)fonts.scale
+	LD_LIBRARY_PATH="$(FONT_LIBS_PATH)" $(MKFONTDIR) $(SOURCE_DATA_DIR)
+
+build_ttf_dir: $(SOURCE_DATA_DIR)fonts.dir
+
+install_ttf: $(BUILD_TARGETS)
+	-rm -rf $(FONT_DEST_DIR)
+	mkdir -p $(FONT_DEST_DIR)
+	$(INSTALL_SCRIPT) -c -m 0444 $(SOURCE_FONT_FILES) $(SOURCE_FONT_DATA) \
+	    $(FONT_DEST_DIR)

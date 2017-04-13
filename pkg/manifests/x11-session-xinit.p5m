@@ -1,0 +1,47 @@
+# Copyright (c) 2010, 2011, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+set name=pkg.fmri value=pkg:/x11/session/xinit@__version:xinit__
+set name=pkg.summary \
+    value="xinit & startx - X Window System manual session startup"
+set name=pkg.description \
+    value="xinit and startx are used to start the X Window System server and clients when a display manager or other startup methods are not in use."
+dir  path=etc/X11
+dir  path=etc/X11/xinit
+file path=etc/X11/xinit/xinitrc preserve=renamenew
+link path=usr/X11/bin/startx target=../../bin/startx
+link path=usr/X11/bin/xinit target=../../bin/xinit
+file path=usr/bin/startx
+file path=usr/bin/xinit
+file path=usr/share/man/man1/startx.1
+file path=usr/share/man/man1/xinit.1
+# startx runs /usr/bin/od to read /dev/urandom
+depend type=require fmri=__TBD pkg.debug.depend.file=usr/bin/od
+# Default xinit session uses twm for window manager
+depend type=require fmri=pkg:/desktop/window-manager/twm
+# startx runs kbd_mode to reset kbd state on Xserver exit/crash
+depend type=require fmri=pkg:/system/keyboard/kbd_mode
+# Default xinit session runs xterm
+depend type=require fmri=pkg:/terminal/xterm
+# startx runs xauth to save cookies to .Xauthority
+depend type=require fmri=pkg:/x11/session/xauth
+# Default xinit session uses xrdb & xmodmap
+depend type=require fmri=pkg:/x11/x11-server-utilities

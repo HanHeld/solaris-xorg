@@ -1,32 +1,29 @@
-# Name of Your Project
-Short description of your project.
+# Getting started with the X Consolidation
 
-# Getting started
-Provide developer level instructions:
+## Getting Started
+This README provides a very brief overview of the gate (i.e., source
+code repository), how to retrieve a copy, and how to build it.  
 
-   - What are the software prerequisites (e.g.: requires Maven version X, WebLogic version Y, etc)
-   - What are the necessary services, in case of being a sample for Oracle Cloud
-   - Instructions for compiling/testing/deploying/running if applied
-   - Short documentation, when sufficient. 
-   - Link to documentation, if applicable
-   - Link to tutorials that use this software, if applicable
-     - You must replicate a simplified/short version of step-by-step instructions given in the tutorial
-   - Links to OTN Community Platform related topics are acceptable
+## Overview
+The X consolidation maintains a project at
 
-# Installation (or Deployment)
-If this is an installable/deployable software, provide step-by-step instructions.
+     https://github.com/oracle/solaris-xorg
 
-# Usage (or Examples)
-Provide instructions on how to use the software of this project.
+That repo contains Makefile, patches, IPS (i.e., pkg(7)) manifests,
+and other files necessary to build, package and publish the Xorg bits
+on Solaris.
 
-# Contributing
-This project is an open source project. See [CONTRIBUTING](./CONTRIBUTING.md) for details.
+## Getting the Bits
+The canonical repository internal to Oracle is stored in Mercurial, and
+is mirrored to an external Git repository on GitHub.  In order to build
+or develop in the gate, you will need to clone it.  You can do so with
+the following command.  
 
-Oracle gratefully acknowledges the contributions to open source projects that have been made by the community.
+    $ git clone https://github.com/oracle/solaris-xorg your-clone
 
-# License
-Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+## Building the software
+Please review BUILD_INSTRUCTIONS for details on how to build and generate
+IPS packages.
 
-Licensed under the Universal Permissive License (UPL), Version 1.0. 
-
-See [LICENSE](./LICENSE) for full license agreement.
+# Copyright
+Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.

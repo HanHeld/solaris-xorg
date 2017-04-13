@@ -1,0 +1,209 @@
+#! /usr/perl5/bin/perl -w
+
+#
+# Copyright (c) 2008, 2012, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+#
+
+require 5.005;				# minimal Perl version required
+use strict;				#
+use diagnostics;			#
+use File::Path;
+use File::Spec;
+use English qw( -nomatchvars );
+use POSIX qw(uname);
+
+my @pass_args;   # arguments to pass on to the make we call
+my $verbose = 0;
+my $silent = 0;
+my $max_jobs;
+
+for (my $i = 0; $i <= $#ARGV; $i++ ) {
+  if ($ARGV[$i] eq '-s') {
+    $silent = 1;
+    $verbose = 0;
+    goto pass_to_make;
+  }
+  elsif ($ARGV[$i] eq '-v') {
+    $verbose = 1;
+    next;
+  }
+
+  if ($i < $#ARGV) { # more than one arg left
+    if ($ARGV[$i] eq '-j') {
+      $max_jobs = $ARGV[++$i];
+      next;
+    }
+    if ($ARGV[$i] eq '-C') {
+      chdir($ARGV[++$i])
+          or die "$0: Can't chdir $ARGV[$i]: $OS_ERROR";
+      next;
+    }
+  }
+
+ pass_to_make:
+  # not used, pass to make command
+  push @pass_args, $ARGV[$i];
+}
+
+my @makeargs = ();
+
+# Arguments: (envvar, defval)
+# If environment variable 'envvar' is not set, set it to 'defval'
+sub setenv_default {
+  my ($envvar, $defval) = @_;
+
+  if (!exists $ENV{$envvar}) {
+    $ENV{$envvar} = $defval;
+  }
+
+  if ($verbose > 0) {
+    print $envvar, '=', $ENV{$envvar}, "\n";
+  }
+
+  return $ENV{$envvar};
+}
+
+sub exec_verbose {
+  my $program = shift @_;
+
+  if ($verbose > 0) {
+    print join(' ', $program, @_), "\n";
+  }
+  exec($program, @_)
+    or die "$0: exec of $program failed: $OS_ERROR";
+}
+
+# save full path to current directory
+my $startdir = File::Spec->rel2abs(File::Spec->curdir());
+
+# climb the tree to find the open-src module directory we're in
+my @dirtree = File::Spec->splitdir($startdir);
+my $osdepth;
+
+for my $n (1..$#dirtree) {
+  if (-f File::Spec->catfile( @dirtree[0..$n],
+			      'open-src/common/Makefile.inc')) {
+    $osdepth = $n + 1;
+    last;
+  }
+}
+
+if (!defined($osdepth)) {
+  die "$0: Cannot find path to open-src/common/Makefile.inc from here";
+}
+
+
+# Use dmake unless user environment overrides
+my $make_cmd = setenv_default('MAKE', 'dmake');
+
+if ($make_cmd =~ m/dmake/) {
+  # Set dmake environment for parallel builds by default
+  setenv_default('DMAKE_MODE', 'parallel');
+  setenv_default('DMAKE_OUTPUT_MODE', 'TXT2');
+
+  if (!defined($max_jobs) && exists $ENV{'DMAKE_MAX_JOBS'}) {
+    $max_jobs = $ENV{'DMAKE_MAX_JOBS'};
+  }
+
+  if (!defined($max_jobs)) {
+    my $machlist = join('/', $ENV{'HOME'}, '.make.machines');
+    if ( -f $machlist ) {
+      my $nodename = (POSIX::uname())[1];
+      if (open my $MACHLIST, '<', $machlist) {
+	while (my $m = <$MACHLIST>) {
+	  my ($hostname, $vars) = split ' ', $m, 2;
+
+	  next if (!defined($hostname) || !defined($vars));
+	  if ($hostname eq $nodename) {
+	    my @varlist = split /\s+/, $vars;
+	    foreach my $v (@varlist) {
+	      my ($var, $val) = split /=/, $v;
+	      if ($var eq 'max') {
+		$max_jobs = $val;
+		last;
+	      }
+	    }
+	    last;
+	  }
+	}
+	close $MACHLIST;
+      }
+    }
+    if (!defined($max_jobs)) {
+      $max_jobs = 0;
+
+      if (open my $PSRINFO, '-|', '/usr/sbin/psrinfo') {
+	while (my $p = <$PSRINFO>) {
+	  if ($p =~ m/on-line/) {
+	    $max_jobs++;
+	  }
+	}
+	close $PSRINFO;
+      }
+    }
+  }
+
+  push @makeargs, '-j', $max_jobs;
+
+  my $dmake_odir =
+    setenv_default('DMAKE_ODIR', File::Spec->catfile(@dirtree[0..($osdepth-1)],
+						     'log', '.dmake'));
+  mkpath($dmake_odir);
+}
+
+# Set some make variables that our makefiles recognize
+my $topdir = File::Spec->catdir( @dirtree[0..($osdepth-1)] );
+push @makeargs, "TOP=$topdir", "V=$verbose";
+
+# if in top two levels, just run make
+if ($osdepth >= ($#dirtree - 2)) {
+  if ($silent == 0) {
+    print join(' ', $make_cmd, @makeargs, @pass_args), "\n";
+  }
+  exec_verbose($make_cmd, @makeargs, @pass_args);
+}
+
+my $subdir_target = 'build-in-subdir';
+for my $f (@pass_args) {
+  if ($f =~ m{^install}ms) {
+    $subdir_target = 'install-in-subdir';
+  }
+}
+
+# Otherwise get info from the module makefile
+my $moduledir = File::Spec->catdir( @dirtree[0..($osdepth+2)] );
+
+push @makeargs, $subdir_target, qq{subdir='$startdir'};
+if (scalar(@pass_args) > 0) {
+  push @makeargs, join(q{ }, q{subdir_cmd=}, @pass_args);
+}
+
+if ($silent == 0) {
+  print join(' ', "(cd $moduledir ;\\\n", $make_cmd, @makeargs), ")\n";
+}
+chdir $moduledir
+  or die "$0: Can't chdir $moduledir: $OS_ERROR";
+exec_verbose($make_cmd, @makeargs);
+
+__END__
+

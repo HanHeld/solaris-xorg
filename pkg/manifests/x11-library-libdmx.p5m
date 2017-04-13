@@ -1,0 +1,52 @@
+# Copyright (c) 2010, 2014, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+set name=pkg.fmri value=pkg:/x11/library/libdmx@__version:libdmx__
+set name=pkg.summary \
+    value="libdmx - X Window System DMX (Distributed Multihead X) extension library"
+set name=pkg.description \
+    value="libdmx is an interface to the DMX extension for X, which allows a single server to be set up as a proxy spanning multiple servers -- not unlike Xinerama across discrete physical machines. It can be reconfigured on the fly to change the layout, and it is presented as a single logical display to clients."
+file path=usr/include/X11/extensions/dmxext.h
+link path=usr/lib/$(ARCH64)/libdmx.so target=libdmx.so.1
+file path=usr/lib/$(ARCH64)/libdmx.so.1
+file path=usr/lib/$(ARCH64)/pkgconfig/dmx.pc
+link path=usr/lib/libdmx.so target=libdmx.so.1
+file path=usr/lib/libdmx.so.1
+file path=usr/lib/pkgconfig/dmx.pc
+dir  path=usr/share/man/man3dmx
+file path=usr/share/man/man3dmx/DMX.3dmx
+file path=usr/share/man/man3dmx/DMXAddInput.3dmx
+file path=usr/share/man/man3dmx/DMXAddScreen.3dmx
+file path=usr/share/man/man3dmx/DMXChangeDesktopAttributes.3dmx
+file path=usr/share/man/man3dmx/DMXChangeScreensAttributes.3dmx
+file path=usr/share/man/man3dmx/DMXForceWindowCreation.3dmx
+file path=usr/share/man/man3dmx/DMXGetDesktopAttributes.3dmx
+file path=usr/share/man/man3dmx/DMXGetInputAttributes.3dmx
+file path=usr/share/man/man3dmx/DMXGetInputCount.3dmx
+file path=usr/share/man/man3dmx/DMXGetScreenAttributes.3dmx
+file path=usr/share/man/man3dmx/DMXGetScreenCount.3dmx
+file path=usr/share/man/man3dmx/DMXGetWindowAttributes.3dmx
+file path=usr/share/man/man3dmx/DMXQueryExtension.3dmx
+file path=usr/share/man/man3dmx/DMXQueryVersion.3dmx
+file path=usr/share/man/man3dmx/DMXRemoveInput.3dmx
+file path=usr/share/man/man3dmx/DMXRemoveScreen.3dmx
+file path=usr/share/man/man3dmx/DMXSync.3dmx
+

@@ -1,0 +1,189 @@
+#!/bin/ksh93
+#
+# buildit
+# Script for building Solaris X Consolidation
+#
+###########################################################################
+#
+# Copyright (c) 1996, 2015, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+###########################################################################
+#
+#
+
+# Add /usr/bin to front of path in case user has /usr/gnu/bin default
+# Add /usr/gnu/bin to path for gnu sed/awk/etc. that configure scripts prefer
+# Add /usr/sbin to path for dtrace (to build probes in X servers)
+
+MACH="$(uname -p)"
+
+PATH=/usr/bin:${PATH}:/usr/gnu/bin:/usr/sbin:/opt/onbld/bin/${MACH}
+export PATH
+
+# Ensure mkdir sets expected permissions for directories in proto area
+umask 022
+
+progname="$0"
+function fatal_error
+{
+    print -u2 "${progname}: ERROR: $*"
+    exit 1
+}
+
+MAKE_PKGS=0
+MAKE_SRC_RELEASE=0	# generate sources for Solaris FOSS release process
+VERBOSE_FLAGS=""	# verbosity flag passed to xmake/make_release_packages
+PUBLISHER_FLAGS=""
+
+while getopts pP:sv i; do
+    case $i in
+	p) MAKE_PKGS=1 ;;
+	s) MAKE_SRC_RELEASE=1 ;;
+	v) VERBOSE_FLAGS="-v" ;;
+	P) PUBLISHER_FLAGS="-p $OPTARG" ;;
+	?) print -u2 "USAGE: $0 [-p [-P publisher]] [-s] [-v]"; exit 2 ;;
+    esac
+done
+
+shift $(($OPTIND-1))
+
+if [[ $? != 0 ]] ; then
+    print -u2 "USAGE: $0 [-p [-P publisher]] [-v]"
+    exit 2
+fi
+
+[ -d log ] || mkdir log
+
+# Send all further output & errors to the log file
+exec > log/buildit-XW 2>&1
+
+START="$(perl -e 'print time')"
+
+XMAKE="$(pwd)/open-src/util/build-tools/xmake ${VERBOSE_FLAGS} -k"
+
+${XMAKE} setup || fatal_error "make setup failed: cannot build"
+
+# Extract variables from makefiles via make and set them in the shell
+get_make_var() {
+    typeset -n var=$1
+    eval "$(${XMAKE} -s -C open-src/util/util-macros print_make_vars VARS=$1)"
+}
+
+# Find hg id and export it so set-elf-comments.pl doesn't have to re-run
+# for every module built
+hg_id() {
+    hg id -it | read rev tag
+    case "${tag}" in
+        tip)	print "${rev}" ;;
+        *)	print "${tag}" ;;
+    esac
+}
+export XBUILD_HG_ID="$(hg_id)"
+
+print "------------------------------------------------------------------------------"
+print "Building gate at hg id: ${XBUILD_HG_ID}"
+print -n "Start time: " ; date
+print -n "Building on: " ; uname -a
+print "Using these tools: "
+# Make sure Studio C compiler is at least version 5.13 (Studio 12.4) 
+# or else the kernel builds will fail
+whence cc
+cc -V 2>&1 | perl -n -e 'if (($_ =~ m| C (\d+).(\d+)|)) { \
+    print $_ ; ( ($1 != 5) || ($2 < 13) ) ? exit(1) : exit(0) }' \
+    || fatal_error '*** Studio Compiler is too old! Studio 12.4 is required.' 
+# Log paths & versions of tools which use gnu standard --version flag
+get_make_var GCC
+for tool in parfait ${GCC} gmake autoconf automake libtool ; do
+    printf "%-22s\t" "$(whence ${tool}):"
+    ${tool} --version | head -1
+done
+
+# Exported to stop Studio compilers from reporting home on each usage
+export SUNW_NO_UPDATE_NOTIFY='true'
+export UT_NO_USAGE_TRACKING='1'
+
+print "Using these environment variables: "
+env
+print "------------------------------------------------------------------------------"
+
+# Clean new proto areas for this architecture
+/bin/rm -rf "proto/root_${MACH}" "proto/metadata_${MACH}" \
+    "proto/pkg_${MACH}" "proto/tools_${MACH}"
+
+${XMAKE} clobber
+mkdir -p proto
+
+# Generate source release while tree is in clean state, but ensure we have all
+# the required tarballs for both platforms, (and no extras/old ones) first.
+if [ "${MAKE_SRC_RELEASE}" = 1 ] ; then
+    rm -rf open-src/tarballs
+    mkdir -p open-src/tarballs
+    for darch in i386 sparc ; do
+	(cd open-src ; \
+	  ${XMAKE} download MACH="${darch}" ADD_PASSDOWN_VARS="MACH=${darch}")
+    done
+    rm -f proto/x.zip BUILD_INSTRUCTIONS.txt pkglist.txt
+    ${XMAKE} proto/x.zip
+fi
+
+cd open-src
+${XMAKE} install
+${XMAKE} check_rtime > ../log/check-rtime 2>&1 &
+cd ..
+
+get_make_var USE_PARFAIT
+if [[ "${USE_PARFAIT}" == "yes" ]] ; then
+    get_make_var DMAKE_MAX_JOBS
+    /bin/rm -rf log/parfait
+    parfait -e all -c open-src/common/X-parfait.conf -z "$(pwd)" \
+        -j "${DMAKE_MAX_JOBS:-100%}" -r "${XBUILD_HG_ID}" \
+        -o log/parfait.txt -g log/parfait ${X_ADD_PARFAIT_FLAGS} \
+        open-src > log/parfait.out 2>&1 &
+fi
+
+# Set DISTRO_NAME based on open-src/common/Makefile.options
+get_make_var DISTRO_NAME
+
+print "\nFinished building the X Window System Consolidation for" \
+    "${DISTRO_NAME:-OpenSolaris}.\n"
+
+if [ "${MAKE_PKGS}" = 1 ] ; then
+    print -n "Build finish time: " ; date ; print ""
+    ./make_release_packages ${PUBLISHER_FLAGS} ${VERBOSE_FLAGS}
+fi
+
+wait
+
+if [[ "${USE_PARFAIT}" == "yes" ]] ; then
+    print -n "\nParfait issues: "
+    wc -l < log/parfait/bugstatus.db
+    print "Parfait results:"
+    print " file:///net/$(hostname)$(pwd)/log/parfait/index.html"
+fi
+
+print -n "\ncheck-rtime errors: "
+grep -c '^====' log/check-rtime
+
+print -n "\nFinish time: " ; date
+perl -e '$runtime = time - $ARGV[0];
+	 printf("Runtime: %d:%02d\n", $runtime/3600, ($runtime%3600)/60); ' \
+	"${START}"

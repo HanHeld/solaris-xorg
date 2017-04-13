@@ -1,0 +1,249 @@
+# Copyright (c) 2010, 2016, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+set name=pkg.fmri value=pkg:/developer/opensolaris/X@$(OSPKGVERS)
+set name=pkg.summary value="Dependencies required to build the X Consolidation."
+set name=info.classification \
+    value="org.opensolaris.category.2008:Development/Distribution Tools"
+
+# We don't want this package to be part of the X incorporation so that you
+# can install it to bootstrap the consolidation build for a later build
+# without having to uninstall all the X packages first.
+set name=org.opensolaris.noincorp value=true
+
+#############################################################################
+# This package is used for dual purposes - it defines what build machines
+# should have installed for building X, and it defines the subset of those
+# packages that pkgdepend resolve should look in for dependencies that were
+# detected by pkgdepend generate.
+#
+# Dependencies to be used by pkgdepend generate bear the additional attribute
+# org.opensolaris.pkgdepend.resolve=true which is used by the extract_depends
+# pkgmogrify filter when making the list for pkgdepend resolve -e to use.
+#############################################################################
+
+# Builds need to be able to uncompress upstream .bz2, .gz, & .xz files
+depend type=require fmri=pkg:/compress/bzip2 \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/compress/gzip
+depend type=require fmri=pkg:/compress/xz
+
+# X.Org ships many docs using the DocBook XML DTD's and stylesheets
+depend type=require fmri=pkg:/data/docbook/docbook-dtds
+depend type=require fmri=pkg:/data/docbook/docbook-style-dsssl
+depend type=require fmri=pkg:/data/docbook/docbook-style-xsl
+depend type=require fmri=pkg:/data/sgml-common
+depend type=require fmri=pkg:/data/xml-common
+
+# Solaris assembler required by Studio compilers
+depend type=require fmri=pkg:/developer/assembler
+
+# Basic build utilities - nm, mcs, etc.
+depend type=require fmri=pkg:/developer/base-developer-utilities
+
+# Many packages need to use GNU autotools to rebuild upstream configure files
+depend type=require fmri=pkg:/developer/build/autoconf
+depend type=require fmri=pkg:/developer/build/automake-$(AUTOMAKE_PKG_VERSION)
+
+# Some packages need GNU make to build
+depend type=require fmri=pkg:/developer/build/gnu-make
+
+# Many packages need to use GNU libtool to rebuild upstream libtool files
+# To build 64-bit libraries correctly, we need libtool 2.2.2 or later
+depend type=require fmri=pkg:/developer/build/libtool@2.2.2
+
+# Most of the X gate requires Solaris make to build
+depend type=require fmri=pkg:/developer/build/make
+
+# The X gate borrows some ON scripts to build, such as validate_pkg
+depend type=require fmri=pkg:/developer/build/onbld
+
+# Many packages use pkg-config to find information about their dependencies
+depend type=require fmri=pkg:/developer/build/pkg-config
+
+# Xserver build includes mdb modules
+depend type=require fmri=pkg:/developer/debug/mdb
+
+# Tools needed to process upstream docs
+depend type=require fmri=pkg:/developer/documentation-tool/asciidoc
+depend type=require fmri=pkg:/developer/documentation-tool/openjade
+depend type=require fmri=pkg:/developer/documentation-tool/opensp
+depend type=require fmri=pkg:/developer/documentation-tool/xmlto
+
+# Some modules use gcc to build (look for MODULE_COMPILER=gcc in Makefiles)
+depend type=require fmri=pkg:/developer/gcc-$(GCC_PKG_VERSION)
+
+# Mesa needs GNU indent to build
+depend type=require fmri=pkg:/developer/gnu-indent
+
+# xcb-util needs gperf to generate hash functions
+depend type=require fmri=pkg:/developer/gperf
+
+# tigervnc builds a java applet with javac
+depend type=require fmri=pkg:/developer/java/jdk-8
+
+# Various modules need flex to generate lexers
+depend type=require fmri=pkg:/developer/lexer/flex
+
+# we are adding llvm (pipe) to mesa for 3d support on gnome3
+depend type=require fmri=pkg:/developer/llvm/llvm \
+    org.opensolaris.pkgdepend.resolve=true
+
+# xcb, xcb-util, xcb-util-wm need GNU M4 to build
+# (also required by any module running autoconf/autoreconf)
+depend type=require fmri=pkg:/developer/macro/gnu-m4
+
+# Xserver build uses flex & bison
+depend type=require fmri=pkg:/developer/parser/bison
+
+# X gate source is kept in mercurial scm
+depend type=require fmri=pkg:/developer/versioning/mercurial
+
+# Driver packages delivering headers we require
+$(i386_ONLY)depend type=require fmri=pkg:/driver/graphics/agpgart
+
+# autoconf scripts prefer various gnu utilities (mkdir, install, etc.)
+depend type=require fmri=pkg:/file/gnu-coreutils \
+    org.opensolaris.pkgdepend.resolve=true
+
+# libvdpau depends on graphviz commands
+depend type=require fmri=pkg:/image/graphviz \
+    org.opensolaris.pkgdepend.resolve=true
+
+# tigervnc links with libjpg
+depend type=require fmri=pkg:/image/library/libjpeg \
+    org.opensolaris.pkgdepend.resolve=true
+
+# app/xcursorgen & lib/freetype link with libpng14
+depend type=require fmri=pkg:/image/library/libpng \
+    org.opensolaris.pkgdepend.resolve=true
+
+# synergy-plus links against libstdcxx
+depend type=require fmri=pkg:/library/c++/stdcxx \
+    org.opensolaris.pkgdepend.resolve=true
+
+# intel-gpu-tools links against libcairo
+$(i386_ONLY)depend type=require fmri=pkg:/library/desktop/cairo \
+    org.opensolaris.pkgdepend.resolve=true
+
+# lib/freetype will use harfbuzz in future builds, start seeding build machines
+depend type=require fmri=pkg:/library/desktop/harfbuzz
+
+# lib/fontconfig links with libexpat
+depend type=require fmri=pkg:/library/expat \
+    org.opensolaris.pkgdepend.resolve=true
+
+# TigerVNC links with gnutls libraries
+depend type=require fmri=pkg:/library/gnutls-3 \
+    org.opensolaris.pkgdepend.resolve=true
+
+# xcb-proto runs xmllint
+depend type=require fmri=pkg:/library/libxml2
+
+# A number of X packages use xsltproc to process DocBook and other XML files
+depend type=require fmri=pkg:/library/libxslt
+
+# AccessX requires motif libraries
+depend type=require fmri=pkg:/library/motif \
+    org.opensolaris.pkgdepend.resolve=true
+
+# xterm uses ncurses/term.h
+depend type=require fmri=pkg:/library/ncurses
+
+# Mesa 7.10.2 requires libxml2 python module
+depend type=require fmri=pkg:/library/python/libxml2-$(PYTHON_PKG_VERSION)
+
+# Synergy links against OpenSSL libraries
+depend type=require fmri=pkg:/library/security/openssl \
+    org.opensolaris.pkgdepend.resolve=true
+
+# freetype, libXfont & libfontenc link with libz
+depend type=require fmri=pkg:/library/zlib \
+    org.opensolaris.pkgdepend.resolve=true
+
+# Build runs a number of perl scripts, and vncserver is shipped as one
+depend type=require fmri=pkg:/runtime/perl-$(PERL_PKG_VERSION) \
+    org.opensolaris.pkgdepend.resolve=true
+
+# xcb & mesa require python interpreter/compiler
+depend type=require fmri=pkg:/runtime/python-$(PYTHON_PKG_VERSION)
+
+# Build uses and packages deliver a lot of shell/ksh93 scripts
+depend type=require fmri=pkg:/shell/ksh93 org.opensolaris.pkgdepend.resolve=true
+
+# Build uses and packages depend on core OS commands & files
+depend type=require fmri=pkg:/system/core-os \
+    org.opensolaris.pkgdepend.resolve=true
+
+# Xserver build includes dtrace probes
+depend type=require fmri=pkg:/system/dtrace
+
+# Xserver currently links with HAL & Dbus
+depend type=require fmri=pkg:/system/hal org.opensolaris.pkgdepend.resolve=true
+
+# Basic drivers, system headers & libraries
+depend type=require fmri=pkg:/system/header
+depend type=require fmri=pkg:/system/io/usb
+depend type=require fmri=pkg:/system/kernel \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/kernel/platform \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/library \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/library/c++-runtime \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/library/flex-runtime
+depend type=require fmri=pkg:/system/library/gcc/gcc-c++-runtime \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/library/gcc/gcc-c-runtime \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/library/libdbus \
+    org.opensolaris.pkgdepend.resolve=true
+depend type=require fmri=pkg:/system/library/math \
+    org.opensolaris.pkgdepend.resolve=true
+
+# Xdmx needs libmd - which moved - 15214282
+depend type=require fmri=pkg:/system/library/security/crypto \
+    org.opensolaris.pkgdepend.resolve=true
+
+# Almost all modules need Solaris ld to link binaries
+depend type=require fmri=pkg:/system/linker
+
+# autoconf scripts prefer gnu awk
+depend type=require fmri=pkg:/text/gawk
+
+# Some packages need GNU gettext to process upstream localization data
+depend type=require fmri=pkg:/text/gnu-gettext
+
+# autoconf scripts prefer gnu grep
+depend type=require fmri=pkg:/text/gnu-grep
+
+# Builds need to be able to apply local patches
+depend type=require fmri=pkg:/text/gnu-patch
+
+# autoconf scripts prefer gnu sed
+depend type=require fmri=pkg:/text/gnu-sed
+
+# xmlto uses lynx to convert html to text
+depend type=require fmri=pkg:/web/browser/lynx
+
+# Builds need to be able to download upstream sources with wget
+depend type=require fmri=pkg:/web/wget

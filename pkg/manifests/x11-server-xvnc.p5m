@@ -1,0 +1,78 @@
+# Copyright (c) 2010, 2016, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+set name=pkg.fmri value=pkg:/x11/server/xvnc@__version:tigervnc__
+set name=pkg.summary value="TigerVNC X11/VNC server"
+set name=pkg.description \
+    value="X Window System server based on X.Org Foundation open source release and TigerVNC open source release that displays over RFB protocol to a VNC client"
+file path=lib/svc/manifest/application/x11/xvnc-inetd.xml
+link path=usr/X11/bin/Xvnc target=../../bin/Xvnc
+$(i386_ONLY)link path=usr/bin/$(ARCH64)/Xvnc target=../Xvnc
+file path=usr/bin/Xvnc group=root mode=2555
+file path=usr/bin/vncconfig
+file path=usr/bin/vncpasswd
+file path=usr/bin/vncserver
+file path=usr/bin/x0vncserver
+link path=usr/lib/mdb/proc/$(ARCH64)/Xvnc.so target=Xserver.so
+file path=usr/lib/vnclock mode=0555
+file path=usr/share/man/man1/Xvnc.1
+file path=usr/share/man/man1/vncconfig.1
+file path=usr/share/man/man1/vncpasswd.1
+file path=usr/share/man/man1/vncserver.1
+file path=usr/share/man/man1/x0vncserver.1
+dir  path=usr/share/vnc
+dir  path=usr/share/vnc/classes
+file path=usr/share/vnc/classes/LICENCE.TXT
+file path=usr/share/vnc/classes/README
+file path=usr/share/vnc/classes/VncViewer.jar mode=0555
+file path=usr/share/vnc/classes/index.html
+file path=usr/share/vnc/classes/index.vnc
+file path=usr/share/vnc/classes/tigervnc_16.gif
+legacy pkg=SUNWxvnc \
+    desc="X Window System server based on X.Org Foundation open source release and TigerVNC open source release that displays over RFB protocol to a VNC client" \
+    name="X11/VNC server"
+
+# Fallback vncserver session runs xterm & twm, but GNOME will be used instead
+# if installed, and customers can configure an alternate session that does
+# not require those, so these are not listed as strict requirements.
+depend type=group fmri=pkg:/desktop/window-manager/twm
+
+# Xvnc depends on xscreensaver.  However, it will still work without the
+# xscreensaver functionality so it is not a strict requirement.
+depend type=group fmri=pkg:/desktop/xscreensaver
+depend type=group fmri=pkg:/terminal/xterm
+
+# vnclock.sh requires xdg-utils
+depend type=require fmri=pkg:/desktop/xdg/xdg-utils
+
+# We need ck-launch-session for VNC/gnome3
+depend type=require fmri=pkg:/library/xdg/consolekit
+
+# vncserver script requires xdpyinfo
+depend type=require fmri=pkg:/x11/diagnostic/x11-info-clients
+
+# X servers require xkbcomp & data-xkb for keyboard layouts
+depend type=require fmri=pkg:/x11/keyboard/data-xkb
+depend type=require fmri=pkg:/x11/keyboard/xkbcomp
+
+# vncserver script requires xauth & xrdb programs
+depend type=require fmri=pkg:/x11/session/xauth
+depend type=require fmri=pkg:/x11/x11-server-utilities

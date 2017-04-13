@@ -1,0 +1,102 @@
+#
+# Copyright (c) 2011, 2016, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+#
+# This file provides exceptions to the usual rules applied to ELF objects by
+# check_rtime. All strings are Perl regular expressions that are compared to
+# file paths. In addition to the standard Perl syntax, there is one extension:
+#
+#	MACH(dir)
+#
+# is expanded into a regular expression that matches the given
+# directory, or a 64-bit subdirectory of the directory with the
+# name of a 64-bit architecture. For example, MACH(lib) will match
+# any of the following:
+#
+#	lib
+#	lib/amd64
+#	lib/sparcv9
+#
+#
+# Files for which we skip checking of duplicate addresses in the
+# symbol sort sections. Such exceptions should be rare --- most code will
+# not have duplicate addresses, since it takes assember or a "#pragma weak"
+# to do such aliasing in C. C++ is different: The compiler generates aliases
+# for implementation reasons, and the mangled names used to encode argument
+# and return value types are difficult to handle well in mapfiles.
+NOSYMSORT	usr/lib/synergy/plugins/libns.so
+NOSYMSORT	usr/bin/synergyc
+NOSYMSORT	usr/bin/synergys
+NOSYMSORT	usr/bin/Xvnc
+NOSYMSORT	usr/bin/vncconfig
+NOSYMSORT	usr/bin/vncpasswd
+NOSYMSORT	usr/bin/vncviewer
+NOSYMSORT	usr/bin/x0vncserver
+NOSYMSORT	usr/lib/MACH(mesa)/libdricore.*\.so\.1.*
+NOSYMSORT	usr/lib/MACH(mesa)/libGL\.so\.1.*
+NOSYMSORT	usr/lib/MACH(mesa)/libGLU\.so\.1.*
+NOSYMSORT	usr/lib/xorg/modules/MACH(dri)/i965_dri\.so
+NOSYMSORT	usr/lib/xorg/modules/MACH(dri)/i915_dri\.so
+NOSYMSORT	usr/lib/xorg/modules/MACH(dri)/r200_dri\.so
+NOSYMSORT	usr/lib/xorg/modules/MACH(dri)/radeon_dri\.so
+NOSYMSORT	usr/lib/xorg/modules/MACH(dri)/swrast_dri\.so
+NOSYMSORT	usr/lib/xorg/modules/MACH(dri)/kms_swrast_dri\.so
+# Loadable modules without dependencies on other modules may have no direct
+# bindings
+NODIRECT        ^usr/lib/mesa/modules/.*$
+NODIRECT        ^usr/lib/xorg/modules/.*$
+
+# Unreferenced object of X objects we can't change for specific reasons
+# - Old versions of Java rely on this dependency, even though it forms a
+#   loop in the dependency graph, so we can't remove it (see Bug 15235619)
+UNREF_OBJ       /libXext\.so\.0;\ unused\ dependency\ of .*/libX11\.so\.4
+#
+# Unreferenced objects of objects from other consolidations
+UNREF_OBJ	/lib.*\ of\ .*libstdcxx4\.so\.4
+
+#
+# Unused runpaths due to use of both relative & absolute paths
+UNUSED_RPATH    /usr/lib/xorg.*\ from\ .*/mkfontscale
+#
+# Unused runpaths in objects from other consolidations
+UNUSED_RPATH	/usr/dt/lib.*\ from\ .*libXm\.so\.4
+UNUSED_RPATH	/opt/VRTSvxvm/lib.*\ from\ .*libdiskmgt\.so\.1
+
+# Since we're not in ON, elfsigning happens at RE dock integration,
+# not during the build process.
+NOELFSIGN	.*
+
+## Things we might be able to fix eventually, but not today:
+#
+# libXinerama & libXss only use libc for malloc() - when linked with synergyc &
+# synergys, which get malloc from libumem via libstdcxx4, libc appears unused.
+UNREF_OBJ	/libc\.so\.1;.*\ of\ .*/usr/MACH(lib)/libXinerama\.so\.1
+UNREF_OBJ	/libc\.so\.1;.*\ of\ .*/usr/lib/64/libXss\.so\.1
+
+# Issues caused by having to pass a single set of linker flags to module
+# configure scripts/Makefiles used to build a mixed bag of objects
+UNUSED_RPATH	/usr/lib/xorg.*\ from\ .*/usr/bin/intel_.*
+UNUSED_RPATH	/usr/lib/xorg.*\ from\ .*/usr/lib/mesa/.*\.so.*
+UNUSED_RPATH	/usr/lib/xorg.*\ from\ .*/usr/lib/MACH(xorg)/libdrm\.so\.2
+UNUSED_RPATH	/usr/lib/xorg.*\ from\ .*/usr/lib/xorg/modules/MACH(dri)/swrast_dri\.so
+UNREF_OBJ	/usr/lib/.*libCstd\.so\.1;.*\ of\ .*/usr/bin/vncconfig
+UNREF_OBJ	/usr/lib/.*libCstd\.so\.1;.*\ of\ .*/usr/bin/vncpasswd

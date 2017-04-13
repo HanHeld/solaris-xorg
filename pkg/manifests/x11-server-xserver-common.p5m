@@ -1,0 +1,65 @@
+# Copyright (c) 2010, 2016, Oracle and/or its affiliates. All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice (including the next
+# paragraph) shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+
+# open-src/xserver/Makefile.inc makes all X server packages depend on
+# xorg-common, so we drop those to avoid silly self-referential dependencies.
+<transform depend fmri=pkg:/x11/server/xserver-common -> drop>
+
+
+set name=pkg.fmri \
+    value=pkg:/x11/server/xserver-common@__version:xserver-common__
+set name=pkg.summary value="X server common files"
+set name=pkg.description \
+    value="Files shared by all X server variants based on the X.Org Foundation implementation.  Includes the x11-server SMF service for Solaris."
+file path=etc/security/auth_attr.d/xserver-common group=sys
+file path=etc/security/prof_attr.d/xserver-common group=sys
+dir  path=lib/svc/manifest/application/x11
+file path=lib/svc/manifest/application/x11/x11-server.xml
+file path=lib/svc/method/x11-server
+dir  path=usr/X11/bin
+link path=usr/X11/bin/X target=../../bin/X
+link path=usr/X11/bin/Xserver target=../../bin/Xserver
+$(i386_ONLY)link path=usr/X11/bin/amd64 target=../../bin/amd64
+link path=usr/X11/lib/X11/xserver target=../../../lib/xorg
+link path=usr/bin/X target=Xserver
+file path=usr/bin/Xserver
+dir  path=usr/demo/Xserver
+dir  path=usr/demo/Xserver/mdb
+file path=usr/demo/Xserver/mdb/README
+file path=usr/demo/Xserver/mdb/list_Xserver_clients mode=0555
+file path=usr/demo/Xserver/mdb/list_Xserver_devicegrab_client mode=0555
+file path=usr/demo/Xserver/mdb/list_Xserver_servergrab_client mode=0555
+file path=usr/lib/mdb/proc/$(ARCH64)/Xserver.so
+dir  path=usr/lib/xorg
+file path=usr/lib/xorg/protocol.txt
+link path=usr/share/doc/Xserver target=xorg-server
+dir  path=usr/share/doc/xorg-server
+# Re-deliver these once 25247220 is fixed
+#file path=usr/share/doc/xorg-server/Xserver-DTrace.html
+#file path=usr/share/doc/xorg-server/Xserver-DTrace.html.db
+#file path=usr/share/doc/xorg-server/Xserver-DTrace.pdf.db
+#file path=usr/share/doc/xorg-server/Xserver-DTrace.txt
+#file path=usr/share/doc/xorg-server/Xserver-DTrace.xml
+file path=usr/share/man/man1/Xnest.1
+file path=usr/share/man/man1/Xserver.1
+# Xserver script runs /usr/bin/readlink (from GNU coreutils)
+depend type=require fmri=pkg:/file/gnu-coreutils
